@@ -5,7 +5,7 @@ import os
 import html2text
 
 # 目标网站
-start_url = "https://www.upc.edu/ca"
+start_url = "https://www.fib.upc.edu/es"
 
 # 记录已访问的URL
 visited_urls = set()
@@ -17,19 +17,34 @@ os.makedirs(output_folder, exist_ok=True)
 os.makedirs(markdown_folder, exist_ok=True)
 
 def save_page(url, content):
-    """保存 HTML 页面"""
+
+    """Guardar la página HTML y convertirla a Markdown"""
+
+    if not url.startswith(start_url):
+        return
+
     parsed_url = urlparse(url)
     filename = parsed_url.path.strip("/").replace("/", "_") or "index"
     html_filepath = os.path.join(output_folder, f"{filename}.html")
     md_filepath = os.path.join(markdown_folder, f"{filename}.md")
-    
-    # 保存 HTML
+
+    # Actualizar los enlaces en el contenido HTML
+    soup = BeautifulSoup(content, "html.parser")
+    for link in soup.find_all("a", href=True):
+        link_url = urljoin(url, link["href"])
+        link_parsed_url = urlparse(link_url)
+        link_filename = link_parsed_url.path.strip("/").replace("/", "_") or "index"
+        link["href"] = f"{link_filename}.md"
+
+    updated_content = str(soup)
+
+    # Guardar HTML actualizado
     with open(html_filepath, "w", encoding="utf-8") as f:
-        f.write(content)
+        f.write(updated_content)
     print(f"Saved HTML: {html_filepath}")
-    
-    # 转换为 Markdown 并保存
-    markdown_content = html2text.html2text(content)
+
+    # Convertir a Markdown y guardar
+    markdown_content = html2text.html2text(updated_content)
     with open(md_filepath, "w", encoding="utf-8") as f:
         f.write(markdown_content)
     print(f"Saved Markdown: {md_filepath}")
