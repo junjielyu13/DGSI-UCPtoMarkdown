@@ -86,7 +86,7 @@ def crawl(url):
             links_to_crawl.append(full_url)
 
     # 使用线程池并行爬取链接
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
         executor.map(crawl, links_to_crawl)
 
 
