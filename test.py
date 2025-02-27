@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import os
 import html2text
+from concurrent.futures import ThreadPoolExecutor
 
 # 目标网站
 start_url = "https://www.fib.upc.edu/es"
@@ -16,10 +17,9 @@ markdown_folder = "markdown_pages"
 os.makedirs(output_folder, exist_ok=True)
 os.makedirs(markdown_folder, exist_ok=True)
 
+
 def save_page(url, content):
-
     """Guardar la página HTML y convertirla a Markdown"""
-
     if not url.startswith(start_url):
         return
 
@@ -49,29 +49,46 @@ def save_page(url, content):
         f.write(markdown_content)
     print(f"Saved Markdown: {md_filepath}")
 
+
+def fetch_and_save(url):
+    """Fetch the content of the URL and save the page"""
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()  # 检查请求是否成功
+        save_page(url, response.text)
+    except requests.RequestException as e:
+        print(f"Failed to fetch {url}: {e}")
+
+
 def crawl(url):
     """递归爬取网站并转换 HTML 为 Markdown"""
     if url in visited_urls or not url.startswith(start_url):
         return
     print(f"Crawling: {url}")
     visited_urls.add(url)
-    
+
     try:
         response = requests.get(url, timeout=5)
         response.raise_for_status()  # 检查请求是否成功
     except requests.RequestException as e:
         print(f"Failed to fetch {url}: {e}")
         return
-    
+
     save_page(url, response.text)
-    
+
     soup = BeautifulSoup(response.text, "html.parser")
+    links_to_crawl = []
 
     # 提取所有链接
     for link in soup.find_all("a", href=True):
         full_url = urljoin(url, link["href"])
         if full_url not in visited_urls:
-            crawl(full_url)  # 递归爬取
+            links_to_crawl.append(full_url)
+
+    # 使用线程池并行爬取链接
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        executor.map(crawl, links_to_crawl)
+
 
 # 启动爬虫
 crawl(start_url)
