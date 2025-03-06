@@ -74,6 +74,6 @@ if __name__ == "__main__":
     store_in_chromadb(chunks, embeddings)
     
     # 测试搜索
-    query_text = "什么是 ChromaDB？"
+    query_text = "Secretaria"
     print("\n🔍 搜索结果:")
     query_chromadb(query_text, model)
