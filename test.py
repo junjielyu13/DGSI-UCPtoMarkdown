@@ -5,63 +5,61 @@ import os
 import html2text
 from concurrent.futures import ThreadPoolExecutor
 
-# 目标网站
-start_url = "https://www.fib.upc.edu/es"
-
-# 记录已访问的URL
+start_url = "https://www.fib.upc.edu/"
 visited_urls = set()
-
-# 存储 HTML 和 Markdown 的文件夹
 output_folder = "downloaded_pages"
 markdown_folder = "markdown_pages"
 os.makedirs(output_folder, exist_ok=True)
 os.makedirs(markdown_folder, exist_ok=True)
 
-
 def save_page(url, content):
-    """Guardar la página HTML y convertirla a Markdown"""
     if not url.startswith(start_url):
         return
 
     parsed_url = urlparse(url)
-    filename = parsed_url.path.strip("/").replace("/", "_") or "index"
-    html_filepath = os.path.join(output_folder, f"{filename}.html")
-    md_filepath = os.path.join(markdown_folder, f"{filename}.md")
+    path = parsed_url.path.strip("/")
+    if not path:
+        path = "index"
+    else:
+        path = os.path.join(*path.split("/"))
 
-    # Actualizar los enlaces en el contenido HTML
+    html_filepath = os.path.join(output_folder, f"{path}.html")
+    md_filepath = os.path.join(markdown_folder, f"{path}.md")
+
+    os.makedirs(os.path.dirname(html_filepath), exist_ok=True)
+    os.makedirs(os.path.dirname(md_filepath), exist_ok=True)
+
     soup = BeautifulSoup(content, "html.parser")
     for link in soup.find_all("a", href=True):
         link_url = urljoin(url, link["href"])
         link_parsed_url = urlparse(link_url)
-        link_filename = link_parsed_url.path.strip("/").replace("/", "_") or "index"
-        link["href"] = f"{link_filename}.md"
+        link_path = link_parsed_url.path.strip("/")
+        if not link_path:
+            link_path = "index"
+        else:
+            link_path = os.path.join(*link_path.split("/"))
+        link["href"] = f"{link_path}.md"
 
     updated_content = str(soup)
 
-    # Guardar HTML actualizado
     with open(html_filepath, "w", encoding="utf-8") as f:
         f.write(updated_content)
     print(f"Saved HTML: {html_filepath}")
 
-    # Convertir a Markdown y guardar
     markdown_content = html2text.html2text(updated_content)
     with open(md_filepath, "w", encoding="utf-8") as f:
         f.write(markdown_content)
     print(f"Saved Markdown: {md_filepath}")
 
-
 def fetch_and_save(url):
-    """Fetch the content of the URL and save the page"""
     try:
         response = requests.get(url, timeout=5)
-        response.raise_for_status()  # 检查请求是否成功
+        response.raise_for_status()
         save_page(url, response.text)
     except requests.RequestException as e:
         print(f"Failed to fetch {url}: {e}")
 
-
 def crawl(url):
-    """递归爬取网站并转换 HTML 为 Markdown"""
     if url in visited_urls or not url.startswith(start_url):
         return
     print(f"Crawling: {url}")
@@ -69,7 +67,7 @@ def crawl(url):
 
     try:
         response = requests.get(url, timeout=5)
-        response.raise_for_status()  # 检查请求是否成功
+        response.raise_for_status()
     except requests.RequestException as e:
         print(f"Failed to fetch {url}: {e}")
         return
@@ -79,16 +77,12 @@ def crawl(url):
     soup = BeautifulSoup(response.text, "html.parser")
     links_to_crawl = []
 
-    # 提取所有链接
     for link in soup.find_all("a", href=True):
         full_url = urljoin(url, link["href"])
         if full_url not in visited_urls:
             links_to_crawl.append(full_url)
 
-    # 使用线程池并行爬取链接
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
         executor.map(crawl, links_to_crawl)
 
-
-# 启动爬虫
 crawl(start_url)
