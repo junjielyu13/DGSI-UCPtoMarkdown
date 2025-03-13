@@ -3,3 +3,4 @@ markdown_pages/
 chroma_db/
 .venv/
 model/llama/
+.cache/
