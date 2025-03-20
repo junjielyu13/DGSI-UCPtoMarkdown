@@ -28,7 +28,7 @@ def load_markdown_files(folder):
                 
     return all_texts
 
-def chunk_texts(texts, chunk_size=500, chunk_overlap=50):
+def chunk_texts(texts, chunk_size=1000, chunk_overlap=100):
     """ Dividir el texto en fragmentos """
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     chunks = []
