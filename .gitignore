@@ -1,6 +1,9 @@
-downloaded_pages/
-markdown_pages/
-chroma_db/
-.venv/
-model/llama/
+downloaded_pages/*
+markdown_pages/*
+chroma_db/*
+.venv/*
+model/llama/*
 .cache/
+pdftesting/*
+pdf_pages/*
+pdfoutput/*
